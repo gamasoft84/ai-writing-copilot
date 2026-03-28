@@ -8,6 +8,7 @@
     "activeTab"
   ],
   "host_permissions": [
+    "https://mi-worker.richardgama.workers.dev/*",
     "https://*.linkedin.com/*",
     "https://*.twitter.com/*",
     "https://*.x.com/*",

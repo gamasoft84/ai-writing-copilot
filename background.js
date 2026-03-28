@@ -16,21 +16,15 @@ async function handleRewrite(prompt) {
       return { error: 'API key no configurada. Haz clic en el ícono de la extensión para agregarla.' };
     }
 
-    console.log('[Copilot] Llamando a Anthropic API...');
+    console.log('[Copilot] Llamando al worker...');
 
     const response = await fetch('https://mi-worker.richardgama.workers.dev', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'x-api-key': apiKey
       },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: 'Eres un asistente experto en comunicación escrita. Reescribes textos según las instrucciones del usuario. Siempre devuelves SOLO el texto reescrito, sin explicaciones, sin comillas, sin prefijos como Aquí está: o Resultado:.',
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify({ prompt })
     });
 
     console.log('[Copilot] HTTP status:', response.status);
@@ -44,10 +38,26 @@ async function handleRewrite(prompt) {
       return { error: msg };
     }
 
-    return { result: data.content[0].text.trim() };
+    const text = extractWorkerText(data);
+    if (text == null) {
+      return { error: 'Respuesta del servidor en formato no reconocido.' };
+    }
+    return { result: text };
 
   } catch (err) {
     console.error('[Copilot] Error:', err.message);
     return { error: 'Error: ' + err.message };
   }
+}
+
+/** Acepta respuesta tipo Anthropic o JSON plano del worker. */
+function extractWorkerText(data) {
+  if (typeof data === 'string') return data.trim();
+  const fromAnthropic = data.content?.[0]?.text;
+  if (typeof fromAnthropic === 'string') return fromAnthropic.trim();
+  for (const key of ['text', 'result', 'reply', 'output']) {
+    const v = data[key];
+    if (typeof v === 'string') return v.trim();
+  }
+  return null;
 }
