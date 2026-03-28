@@ -198,7 +198,7 @@ async function handleAction(action, text) {
   } catch (err) {
     document.getElementById('copilotLoading').style.display = 'none';
     document.getElementById('copilotError').style.display = 'block';
-    document.getElementById('copilotError').textContent = 'Error al conectar. Revisa tu API key.';
+    document.getElementById('copilotError').textContent = 'Error al conectar. Revisa tu API key';
   }
 }
 

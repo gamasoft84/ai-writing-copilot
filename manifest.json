@@ -14,8 +14,7 @@
     "https://*.facebook.com/*",
     "https://web.whatsapp.com/*",
     "https://mail.google.com/*",
-    "https://claude.ai/*",
-    "https://api.anthropic.com/*"
+    "https://claude.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
