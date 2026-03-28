@@ -1,3 +1,6 @@
+/** Misma llamada que index.js (worker) pero desde el service worker. */
+const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'REWRITE') {
     handleRewrite(message.prompt).then(sendResponse);
@@ -16,15 +19,24 @@ async function handleRewrite(prompt) {
       return { error: 'API key no configurada. Haz clic en el ícono de la extensión para agregarla.' };
     }
 
-    console.log('[Copilot] Llamando al worker...');
+    console.log('[Copilot] Llamando a Anthropic API...');
 
-    const response = await fetch('https://mi-worker.richardgama.workers.dev', {
+    const response = await fetch(ANTHROPIC_MESSAGES_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        // Requerido por Anthropic para peticiones desde entorno de navegador (MV3 service worker).
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system:
+          'Eres un asistente experto en comunicación escrita. Devuelve SOLO el texto reescrito, sin explicaciones.',
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
 
     console.log('[Copilot] HTTP status:', response.status);
@@ -38,26 +50,13 @@ async function handleRewrite(prompt) {
       return { error: msg };
     }
 
-    const text = extractWorkerText(data);
-    if (text == null) {
-      return { error: 'Respuesta del servidor en formato no reconocido.' };
+    const text = data.content?.[0]?.text;
+    if (typeof text !== 'string') {
+      return { error: 'Respuesta de Anthropic en formato inesperado.' };
     }
-    return { result: text };
-
+    return { result: text.trim() };
   } catch (err) {
     console.error('[Copilot] Error:', err.message);
     return { error: 'Error: ' + err.message };
   }
-}
-
-/** Acepta respuesta tipo Anthropic o JSON plano del worker. */
-function extractWorkerText(data) {
-  if (typeof data === 'string') return data.trim();
-  const fromAnthropic = data.content?.[0]?.text;
-  if (typeof fromAnthropic === 'string') return fromAnthropic.trim();
-  for (const key of ['text', 'result', 'reply', 'output']) {
-    const v = data[key];
-    if (typeof v === 'string') return v.trim();
-  }
-  return null;
 }
