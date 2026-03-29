@@ -1,6 +1,8 @@
 let activeField = null;
 let triggerBtn = null;
 let panel = null;
+/** WhatsApp y otras apps mueven el foco entre nodos del composer; sin esto focusout borra el botón antes de tiempo. */
+let hideTriggerTimer = null;
 
 function isEditable(el) {
   return (
@@ -39,6 +41,10 @@ function createTriggerBtn(field) {
   triggerBtn.title = 'AI Writing Co-Pilot (Ctrl+Shift+W)';
   triggerBtn.style.top = `${rect.top + window.scrollY + rect.height - 32}px`;
   triggerBtn.style.left = `${rect.right + window.scrollX - 36}px`;
+  triggerBtn.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  });
   triggerBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     openPanel();
@@ -202,19 +208,46 @@ async function handleAction(action, text) {
   }
 }
 
-// Eventos
-document.addEventListener('focusin', (e) => {
-  if (isEditable(e.target) && !e.target.closest('.copilot-panel')) {
-    activeField = e.target;
-    createTriggerBtn(e.target);
-  }
-});
+function scheduleRemoveTriggerBtn() {
+  if (panel) return;
+  if (hideTriggerTimer) clearTimeout(hideTriggerTimer);
+  hideTriggerTimer = setTimeout(() => {
+    hideTriggerTimer = null;
+    if (panel) return;
+    const ae = document.activeElement;
+    const stillInside =
+      activeField &&
+      activeField.isConnected &&
+      (activeField === ae || activeField.contains(ae));
+    if (!stillInside && ae !== triggerBtn) {
+      removeTriggerBtn();
+    }
+  }, 450);
+}
 
-document.addEventListener('focusout', (e) => {
-  setTimeout(() => {
-    if (!panel) removeTriggerBtn();
-  }, 250);
-});
+// Eventos (capture: true para captar foco dentro de shadow DOM / estructuras como WhatsApp Web)
+document.addEventListener(
+  'focusin',
+  (e) => {
+    if (hideTriggerTimer) {
+      clearTimeout(hideTriggerTimer);
+      hideTriggerTimer = null;
+    }
+    if (isEditable(e.target) && !e.target.closest('.copilot-panel')) {
+      activeField = e.target;
+      createTriggerBtn(e.target);
+    }
+  },
+  true
+);
+
+document.addEventListener(
+  'focusout',
+  () => {
+    scheduleRemoveTriggerBtn();
+  },
+  true
+);
 
 document.addEventListener('click', (e) => {
   if (panel && !panel.contains(e.target) && e.target !== triggerBtn) {
