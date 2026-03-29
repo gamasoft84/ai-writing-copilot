@@ -3,6 +3,8 @@ let triggerBtn = null;
 let panel = null;
 /** WhatsApp y otras apps mueven el foco entre nodos del composer; sin esto focusout borra el botón antes de tiempo. */
 let hideTriggerTimer = null;
+/** Tras arrastrar el panel, no lo reubica el scroll junto al campo. */
+let panelSkipFollowScroll = false;
 
 function isEditable(el) {
   return (
@@ -69,14 +71,16 @@ function openPanel() {
     return;
   }
 
+  panelSkipFollowScroll = false;
+
   const lang = detectContentLanguage(text);
   const badge = langBadgeMeta(lang);
 
   panel = document.createElement('div');
   panel.className = 'copilot-panel';
   panel.innerHTML = `
-    <div class="copilot-header">
-      <span>✦ AI Writing Co-Pilot</span>
+    <div class="copilot-header" title="Arrastra para mover el panel">
+      <span class="copilot-header-title">✦ AI Writing Co-Pilot</span>
       <button type="button" class="copilot-close" id="copilotClose" aria-label="Cerrar">✕</button>
     </div>
     <div class="copilot-original">
@@ -163,10 +167,61 @@ function openPanel() {
       }, 1500);
     });
   });
+
+  attachPanelDrag(panel);
+}
+
+function attachPanelDrag(panelEl) {
+  const header = panelEl.querySelector('.copilot-header');
+  if (!header) return;
+
+  header.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest('.copilot-close')) return;
+
+    const rect = panelEl.getBoundingClientRect();
+    const offsetX = e.clientX + window.scrollX - (rect.left + window.scrollX);
+    const offsetY = e.clientY + window.scrollY - (rect.top + window.scrollY);
+    const start = { x: e.clientX, y: e.clientY };
+    let moved = false;
+
+    header.classList.add('copilot-dragging');
+
+    const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+    const onMove = (ev) => {
+      if (Math.abs(ev.clientX - start.x) > 3 || Math.abs(ev.clientY - start.y) > 3) moved = true;
+
+      const w = panelEl.offsetWidth;
+      const h = panelEl.offsetHeight;
+      const px = ev.clientX + window.scrollX - offsetX;
+      const py = ev.clientY + window.scrollY - offsetY;
+      const minL = window.scrollX + 4;
+      const minT = window.scrollY + 4;
+      const maxL = window.scrollX + window.innerWidth - w - 4;
+      const maxT = window.scrollY + window.innerHeight - h - 4;
+      panelEl.style.left = `${clamp(px, minL, Math.max(minL, maxL))}px`;
+      panelEl.style.top = `${clamp(py, minT, Math.max(minT, maxT))}px`;
+    };
+
+    const onUp = () => {
+      header.classList.remove('copilot-dragging');
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      if (moved) panelSkipFollowScroll = true;
+    };
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+
+    e.preventDefault();
+  });
 }
 
 function positionPanel() {
-  if (!panel || !activeField) return;
+  if (!panel || !activeField || panelSkipFollowScroll) return;
   const rect = activeField.getBoundingClientRect();
   const panelH = 460;
   const margin = 8;
@@ -182,7 +237,11 @@ function positionPanel() {
 }
 
 function closePanel() {
-  if (panel) { panel.remove(); panel = null; }
+  if (panel) {
+    panel.remove();
+    panel = null;
+  }
+  panelSkipFollowScroll = false;
 }
 
 function showToast(msg) {

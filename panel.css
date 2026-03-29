@@ -45,6 +45,18 @@
   font-weight: 600;
   font-size: 13px;
   letter-spacing: -0.01em;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.copilot-header.copilot-dragging {
+  cursor: grabbing;
+}
+
+.copilot-header-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .copilot-close {
