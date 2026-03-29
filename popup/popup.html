@@ -5,144 +5,225 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 290px;
-      padding: 18px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      width: 340px;
+      min-height: 420px;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 13px;
-      color: #1a1a1a;
-      background: #fff;
+      color: #16161d;
+      background: linear-gradient(160deg, #0f0a1a 0%, #1a1240 42%, #2d1f5c 100%);
+      padding: 0;
     }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
+    .shell {
+      padding: 20px 20px 18px;
     }
-    .logo {
-      width: 28px;
-      height: 28px;
-      background: #534AB7;
-      border-radius: 8px;
-      display: flex;
+    .hero {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .hero-badge {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-size: 15px;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #7c6cf0 0%, #534AB7 50%, #3d2d8f 100%);
+      color: #fff;
+      font-size: 22px;
+      box-shadow: 0 8px 24px rgba(83, 74, 183, 0.45);
+      margin-bottom: 12px;
     }
-    h2 { font-size: 14px; font-weight: 600; color: #1a1a1a; }
-    .subtitle { font-size: 11px; color: #999; }
+    .hero h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .hero p {
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.45;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 16px;
+      padding: 18px 16px 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    }
 
     label {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
       font-weight: 600;
-      color: #888;
+      color: #5c5c6e;
       text-transform: uppercase;
-      letter-spacing: .05em;
-      margin-bottom: 5px;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
     }
-    .input-wrap { position: relative; margin-bottom: 10px; }
-    input[type="password"], input[type="text"] {
+    label .hint {
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #9898a8;
+      font-size: 10px;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+    input[type="password"],
+    input[type="text"] {
       width: 100%;
-      padding: 9px 36px 9px 10px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
+      padding: 11px 40px 11px 12px;
+      border: 1px solid #e4e4ec;
+      border-radius: 10px;
       font-size: 12px;
-      font-family: inherit;
+      font-family: ui-monospace, monospace;
       outline: none;
-      transition: border-color .15s;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: #fafaff;
     }
-    input:focus { border-color: #534AB7; }
+    input:focus {
+      border-color: #534AB7;
+      box-shadow: 0 0 0 3px rgba(83, 74, 183, 0.15);
+      background: #fff;
+    }
     .toggle-vis {
       position: absolute;
-      right: 10px;
+      right: 8px;
       top: 50%;
       transform: translateY(-50%);
-      background: none;
+      width: 32px;
+      height: 32px;
       border: none;
+      border-radius: 8px;
+      background: transparent;
       cursor: pointer;
-      color: #aaa;
-      font-size: 14px;
-      padding: 0;
+      color: #a0a0b0;
+      font-size: 15px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+    .toggle-vis:hover {
+      color: #534AB7;
+      background: rgba(83, 74, 183, 0.08);
     }
 
     button.save {
       width: 100%;
-      padding: 9px;
-      background: #534AB7;
-      color: white;
+      padding: 11px 14px;
+      background: linear-gradient(135deg, #6b5ce7 0%, #534AB7 100%);
+      color: #fff;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
       font-family: inherit;
-      transition: background .15s;
+      box-shadow: 0 4px 14px rgba(83, 74, 183, 0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    button.save:hover { background: #4340a0; }
+    button.save:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(83, 74, 183, 0.4);
+    }
+    button.save:active {
+      transform: translateY(0);
+    }
 
     .status {
       text-align: center;
       font-size: 12px;
-      margin-top: 8px;
-      height: 18px;
+      margin-top: 10px;
+      min-height: 18px;
+      font-weight: 500;
     }
-    .status.ok { color: #27ae60; }
-    .status.err { color: #c0392b; }
+    .status.ok { color: #0d8f5b; }
+    .status.err { color: #c42b2b; }
 
-    .divider { border: none; border-top: 1px solid #f0f0f0; margin: 14px 0; }
+    .divider {
+      border: none;
+      border-top: 1px solid #ececf4;
+      margin: 16px 0 14px;
+    }
 
     .info {
       font-size: 11px;
-      color: #aaa;
-      line-height: 1.6;
+      color: #7a7a8c;
+      line-height: 1.65;
     }
-    .info a { color: #534AB7; text-decoration: none; }
-
-    .shortcut {
-      margin-top: 12px;
-      padding: 8px 10px;
-      background: #f7f6ff;
-      border-radius: 8px;
-      font-size: 11px;
+    .info a {
       color: #534AB7;
+      font-weight: 500;
+      text-decoration: none;
     }
-    kbd {
-      background: #534AB7;
-      color: white;
+    .info a:hover { text-decoration: underline; }
+    .info code {
+      font-size: 10px;
+      background: #f0f0f7;
       padding: 1px 5px;
       border-radius: 4px;
-      font-family: monospace;
+      color: #4a4a5c;
+    }
+
+    .shortcut {
+      margin-top: 14px;
+      padding: 10px 12px;
+      background: linear-gradient(90deg, rgba(83, 74, 183, 0.1) 0%, rgba(124, 108, 240, 0.08) 100%);
+      border-radius: 10px;
       font-size: 11px;
+      color: #534AB7;
+      border: 1px solid rgba(83, 74, 183, 0.12);
+    }
+    kbd {
+      display: inline-block;
+      background: #534AB7;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo">✦</div>
-    <div>
-      <h2>AI Writing Co-Pilot</h2>
-      <div class="subtitle">Powered by Claude</div>
+  <div class="shell">
+    <div class="hero">
+      <div class="hero-badge" aria-hidden="true">✦</div>
+      <h1>AI Writing Co-Pilot</h1>
+      <p>Reescribe y traduce con Claude donde escribes.</p>
     </div>
-  </div>
 
-  <label>Tu API Key de Anthropic</label>
-  <div class="input-wrap">
-    <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
-    <button class="toggle-vis" id="toggleVis" title="Mostrar/ocultar">👁</button>
-  </div>
-  <button class="save" id="saveBtn">Guardar configuración</button>
-  <div class="status" id="status"></div>
+    <div class="card">
+      <label>
+        API Key de Anthropic
+        <span class="hint">solo en tu navegador</span>
+      </label>
+      <div class="input-wrap">
+        <input type="password" id="apiKey" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+        <button type="button" class="toggle-vis" id="toggleVis" title="Mostrar u ocultar" aria-label="Mostrar u ocultar">👁</button>
+      </div>
+      <button type="button" class="save" id="saveBtn">Guardar configuración</button>
+      <div class="status" id="status"></div>
 
-  <hr class="divider">
+      <hr class="divider">
 
-  <div class="info">
-    Tu API key se guarda localmente en tu navegador. Nunca se envía a servidores de terceros.<br><br>
-    Obtén tu key en <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
-  </div>
+      <div class="info">
+        Se guarda en <code>chrome.storage.local</code> (este dispositivo). El service worker la usa solo para llamar a <code>api.anthropic.com</code>.<br><br>
+        Crea tu clave en <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>
+      </div>
 
-  <div class="shortcut">
-    Atajo: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> abre el copiloto en cualquier campo de texto
+      <div class="shortcut">
+        Atajo: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>W</kbd> — abre el copiloto en el campo activo
+      </div>
+    </div>
   </div>
 
   <script src="popup.js"></script>
