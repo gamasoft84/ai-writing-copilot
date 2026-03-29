@@ -10,7 +10,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleRewrite(prompt) {
   try {
-    const { apiKey } = await chrome.storage.sync.get('apiKey');
+    let { apiKey } = await chrome.storage.local.get('apiKey');
+    if (!apiKey) {
+      const sync = await chrome.storage.sync.get('apiKey');
+      apiKey = sync.apiKey;
+    }
 
     console.log('[Copilot] API key encontrada:', !!apiKey);
     if (apiKey) console.log('[Copilot] Prefix:', apiKey.substring(0, 14));

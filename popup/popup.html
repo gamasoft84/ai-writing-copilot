@@ -172,6 +172,44 @@
       color: #4a4a5c;
     }
 
+    .row-toggle {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      background: #f7f7fb;
+      border-radius: 10px;
+      border: 1px solid #ececf4;
+    }
+    .row-toggle label {
+      margin: 0;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #3a3a48;
+      line-height: 1.4;
+      cursor: pointer;
+      flex: 1;
+    }
+    .row-toggle input {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: #534AB7;
+      cursor: pointer;
+    }
+    .row-toggle .sub {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: #888;
+      margin-top: 4px;
+    }
+
     .shortcut {
       margin-top: 14px;
       padding: 10px 12px;
@@ -210,6 +248,15 @@
         <input type="password" id="apiKey" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
         <button type="button" class="toggle-vis" id="toggleVis" title="Mostrar u ocultar" aria-label="Mostrar u ocultar">👁</button>
       </div>
+
+      <div class="row-toggle">
+        <label for="waResponderToggle">
+          WhatsApp: “Responder a este mensaje”
+          <span class="sub">Usa el mensaje citado al responder con ↩️. Desactivado por defecto.</span>
+        </label>
+        <input type="checkbox" id="waResponderToggle" />
+      </div>
+
       <button type="button" class="save" id="saveBtn">Guardar configuración</button>
       <div class="status" id="status"></div>
 

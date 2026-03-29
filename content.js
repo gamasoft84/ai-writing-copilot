@@ -197,12 +197,19 @@ function openPanel() {
     return;
   }
 
+  chrome.storage.local.get(['waResponderEnabled'], ({ waResponderEnabled }) => {
+    openPanelWithText(text, waResponderEnabled === true);
+  });
+}
+
+function openPanelWithText(text, waResponderEnabled) {
   panelSkipFollowScroll = false;
 
   const lang = detectContentLanguage(text);
   const badge = langBadgeMeta(lang);
   const waSurface = getEditableSurface(activeField);
-  const waQuoted = isWhatsAppWeb() ? extractWhatsAppQuotedContext(waSurface) : '';
+  const waQuoted =
+    waResponderEnabled && isWhatsAppWeb() ? extractWhatsAppQuotedContext(waSurface) : '';
 
   panel = document.createElement('div');
   panel.className = 'copilot-panel';
@@ -216,12 +223,12 @@ function openPanel() {
         <div class="copilot-label">Tu texto</div>
         <span class="copilot-lang-badge ${badge.cls}">${escapeHtml(badge.text)}</span>
       </div>
-      ${waQuotePreviewHtml(waQuoted)}
+      ${waResponderEnabled ? waQuotePreviewHtml(waQuoted) : ''}
       <div class="copilot-text-preview" id="copilotPreview">${escapeHtml(text)}</div>
     </div>
     <div class="copilot-actions-wrap">
-      <p class="copilot-smart-hint">${escapeHtml(smartHintForLang(lang))}</p>
-      ${buildActionsSectionsHTML(lang)}
+      <p class="copilot-smart-hint">${escapeHtml(smartHintForLang(lang, waResponderEnabled))}</p>
+      ${buildActionsSectionsHTML(lang, waResponderEnabled)}
     </div>
     <div class="copilot-loading" id="copilotLoading" style="display:none">
       <div class="copilot-spinner"></div>
@@ -300,6 +307,7 @@ function openPanel() {
 
   attachPanelDrag(panel);
 }
+
 
 function attachPanelDrag(panelEl) {
   const header = panelEl.querySelector('.copilot-header');
@@ -475,7 +483,7 @@ function langBadgeMeta(lang) {
   }
 }
 
-function smartHintForLang(lang) {
+function smartHintForLang(lang, waResponderEnabled) {
   let s = '';
   switch (lang) {
     case 'es':
@@ -490,13 +498,13 @@ function smartHintForLang(lang) {
     default:
       s = 'No estamos seguros del idioma; tienes todas las opciones.';
   }
-  if (isWhatsAppWeb()) {
+  if (waResponderEnabled && isWhatsAppWeb()) {
     s += ' Usa "Responder a este mensaje" si abriste respuesta con la flecha ↩️ sobre un chat.';
   }
   return s;
 }
 
-function buildActionsSectionsHTML(lang) {
+function buildActionsSectionsHTML(lang, waResponderEnabled) {
   const toneEs = [
     { action: 'profesional', label: 'Profesional' },
     { action: 'casual', label: 'Casual' },
@@ -528,7 +536,7 @@ function buildActionsSectionsHTML(lang) {
     html += '</div>';
   };
 
-  if (isWhatsAppWeb()) {
+  if (waResponderEnabled && isWhatsAppWeb()) {
     section('WhatsApp', [
       { action: 'responder-wa', label: 'Responder a este mensaje' }
     ]);
