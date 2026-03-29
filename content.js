@@ -201,6 +201,8 @@ function openPanel() {
 
   const lang = detectContentLanguage(text);
   const badge = langBadgeMeta(lang);
+  const waSurface = getEditableSurface(activeField);
+  const waQuoted = isWhatsAppWeb() ? extractWhatsAppQuotedContext(waSurface) : '';
 
   panel = document.createElement('div');
   panel.className = 'copilot-panel';
@@ -214,6 +216,7 @@ function openPanel() {
         <div class="copilot-label">Tu texto</div>
         <span class="copilot-lang-badge ${badge.cls}">${escapeHtml(badge.text)}</span>
       </div>
+      ${waQuotePreviewHtml(waQuoted)}
       <div class="copilot-text-preview" id="copilotPreview">${escapeHtml(text)}</div>
     </div>
     <div class="copilot-actions-wrap">
@@ -253,7 +256,7 @@ function openPanel() {
       e.stopPropagation();
       panel.querySelectorAll('.copilot-btn[data-action]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      handleAction(btn.dataset.action, text);
+      handleAction(btn.dataset.action, text, { waQuoted });
     });
   });
 
@@ -383,6 +386,59 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function isWhatsAppWeb() {
+  return location.hostname === 'web.whatsapp.com';
+}
+
+/** Texto visible de un subárbol (prioriza spans que WA usa para mensajes/citas). */
+function collectSelectableText(root) {
+  if (!root) return '';
+  const parts = [];
+  const spans = root.querySelectorAll('span.selectable-text');
+  if (spans.length) {
+    spans.forEach((s) => {
+      const t = (s.innerText || '').trim();
+      if (t) parts.push(t);
+    });
+    return parts.join('\n').trim();
+  }
+  return (root.innerText || '').trim();
+}
+
+/**
+ * WhatsApp: al responder, la cita suele estar en un hermano anterior del bloque del editor.
+ */
+function extractWhatsAppQuotedContext(surface) {
+  if (!isWhatsAppWeb() || !surface || !surface.isConnected) return '';
+  const draft = normCompare(surface.innerText || surface.textContent || '');
+
+  let node = surface;
+  for (let depth = 0; depth < 22 && node; depth++) {
+    let sib = node.previousElementSibling;
+    while (sib) {
+      const raw = collectSelectableText(sib);
+      const n = normCompare(raw);
+      if (
+        n.length >= 2 &&
+        n !== draft &&
+        n.length <= 6000 &&
+        (!draft || !draft.includes(n) || n.length < draft.length * 0.95)
+      ) {
+        return raw.slice(0, 8000);
+      }
+      sib = sib.previousElementSibling;
+    }
+    node = node.parentElement;
+  }
+  return '';
+}
+
+function waQuotePreviewHtml(quoted) {
+  if (!quoted) return '';
+  const short = quoted.length > 140 ? `${quoted.slice(0, 140)}…` : quoted;
+  return `<div class="copilot-wa-quote" title="${escapeHtml(quoted)}">Respondiendo a: ${escapeHtml(short)}</div>`;
+}
+
 /** Heurística local (sin API): suficiente para priorizar botones en el panel. */
 function detectContentLanguage(text) {
   const sample = text.slice(0, 2500).toLowerCase();
@@ -420,16 +476,24 @@ function langBadgeMeta(lang) {
 }
 
 function smartHintForLang(lang) {
+  let s = '';
   switch (lang) {
     case 'es':
-      return 'Parece español: opciones de mejora, traducción a inglés y tono.';
+      s = 'Parece español: opciones de mejora, traducción a inglés y tono.';
+      break;
     case 'en':
-      return 'Looks like English: improve, translate to Spanish, and tone.';
+      s = 'Looks like English: improve, translate to Spanish, and tone.';
+      break;
     case 'mixed':
-      return 'Texto mixto: usa la sección que coincida con cada parte.';
+      s = 'Texto mixto: usa la sección que coincida con cada parte.';
+      break;
     default:
-      return 'No estamos seguros del idioma; tienes todas las opciones.';
+      s = 'No estamos seguros del idioma; tienes todas las opciones.';
   }
+  if (isWhatsAppWeb()) {
+    s += ' Usa "Responder a este mensaje" si abriste respuesta con la flecha ↩️ sobre un chat.';
+  }
+  return s;
 }
 
 function buildActionsSectionsHTML(lang) {
@@ -463,6 +527,12 @@ function buildActionsSectionsHTML(lang) {
     }
     html += '</div>';
   };
+
+  if (isWhatsAppWeb()) {
+    section('WhatsApp', [
+      { action: 'responder-wa', label: 'Responder a este mensaje' }
+    ]);
+  }
 
   if (lang === 'es') {
     section('Mejorar y traducir', [
@@ -503,7 +573,7 @@ function buildActionsSectionsHTML(lang) {
   return html;
 }
 
-async function handleAction(action, text) {
+async function handleAction(action, text, opts = {}) {
   if (!panel) return;
   const $p = (sel) => panel.querySelector(sel);
 
@@ -511,7 +581,15 @@ async function handleAction(action, text) {
   $p('#copilotResult').style.display = 'none';
   $p('#copilotError').style.display = 'none';
 
+  const waQuoted = opts.waQuoted || '';
+
+  const responderWaPrompt =
+    waQuoted.trim().length > 0
+      ? `Eres quien escribe en WhatsApp y RESPONDE a este mensaje previo (lo envió otra persona):\n"""${waQuoted}"""\n\nBorrador actual de tu respuesta:\n"""${text}"""\n\nRedacta el mensaje final para enviar: coherente con lo que te dijeron, natural para chat, mismo idioma que el borrador salvo que el contexto pida otro registro. Solo el texto del mensaje, sin comillas ni "Aquí tienes".`
+      : `Estás en WhatsApp pero no se pudo leer el mensaje citado (usa "Responder" en un mensaje para que aparezca arriba del cuadro). Mejora este borrador como respuesta de chat breve y natural. Solo el texto:\n\n${text}`;
+
   const prompts = {
+    'responder-wa': responderWaPrompt,
     'mejorar-es': `Mejora este texto en español. Hazlo más claro, natural y fluido sin cambiar el significado. Devuelve SOLO el texto mejorado, sin explicaciones:\n\n${text}`,
     'mejorar-en': `Improve this text in English. Make it clear, natural and fluent without changing the meaning. Return ONLY the improved text, no explanations:\n\n${text}`,
     'traducir-en': `Traduce este texto al inglés de forma natural y profesional. Devuelve SOLO la traducción, sin notas:\n\n${text}`,
@@ -524,10 +602,18 @@ async function handleAction(action, text) {
     'expandir': `Expand the text below slightly with useful detail, same language and similar tone. Return ONLY the expanded text, no labels:\n\n${text}`
   };
 
+  const prompt = prompts[action];
+  if (!prompt) {
+    $p('#copilotLoading').style.display = 'none';
+    $p('#copilotError').style.display = 'block';
+    $p('#copilotError').textContent = 'Acción no disponible';
+    return;
+  }
+
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'REWRITE',
-      prompt: prompts[action]
+      prompt
     });
 
     $p('#copilotLoading').style.display = 'none';

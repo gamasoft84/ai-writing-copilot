@@ -109,6 +109,17 @@
   color: #6a6a78;
 }
 
+.copilot-wa-quote {
+  font-size: 11px;
+  color: #3d6b4a;
+  background: rgba(37, 150, 90, 0.1);
+  border-left: 3px solid #25965a;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  border-radius: 0 8px 8px 0;
+  line-height: 1.4;
+}
+
 .copilot-label {
   font-size: 10px;
   font-weight: 600;
