@@ -5,7 +5,9 @@
   "description": "Reescribe y mejora tus mensajes con IA en español e inglés",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "clipboardWrite",
+    "clipboardRead"
   ],
   "host_permissions": [
     "https://api.anthropic.com/*",

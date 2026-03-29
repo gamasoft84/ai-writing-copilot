@@ -15,28 +15,154 @@ function isEditable(el) {
   );
 }
 
+/** Sube hasta el nodo con contenteditable="true" (WhatsApp enfoca hijos internos). */
+function getEditableSurface(el) {
+  if (!el || el.nodeType !== 1) return el;
+  let n = el;
+  for (let i = 0; i < 24 && n; i++) {
+    if (
+      n.getAttribute('contenteditable') === 'true' ||
+      n.getAttribute('contenteditable') === ''
+    ) {
+      return n;
+    }
+    n = n.parentElement;
+  }
+  return el;
+}
+
 function getText() {
   if (!activeField) return '';
   if (activeField.tagName === 'TEXTAREA' || activeField.tagName === 'INPUT') {
     return activeField.value;
   }
-  return activeField.innerText || activeField.textContent || '';
+  const surface = getEditableSurface(activeField);
+  return surface.innerText || surface.textContent || '';
 }
 
-function setText(text, el) {
+function normCompare(s) {
+  return (s || '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
+}
+
+function selectAllInSurface(surface) {
+  surface.focus();
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(surface);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (_) {
+    /* ignore */
+  }
+}
+
+/** Gmail / Facebook / contenteditables que sí reaccionan a insertText o innerText. */
+function replaceContentEditableGeneric(surface, text) {
+  selectAllInSurface(surface);
+
+  let ok = false;
+  try {
+    ok = document.execCommand('insertText', false, text);
+  } catch (_) {
+    ok = false;
+  }
+
+  if (!ok) {
+    surface.innerText = text;
+    try {
+      surface.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  try {
+    surface.dispatchEvent(new Event('change', { bubbles: true }));
+  } catch (_) {
+    /* ignore */
+  }
+
+  return true;
+}
+
+/**
+ * WhatsApp Web (React): innerText solo no actualiza el estado; hay que verificar
+ * y usar portapapeles + paste como respaldo (gesto del usuario en "Reemplazar").
+ */
+async function replaceWhatsAppComposer(surface, text) {
+  const expected = normCompare(text);
+
+  selectAllInSurface(surface);
+  try {
+    document.execCommand('insertText', false, text);
+  } catch (_) {
+    /* ignore */
+  }
+
+  await new Promise((r) => requestAnimationFrame(r));
+
+  if (normCompare(surface.innerText) === expected) {
+    return true;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {
+    /* sigue con innerText abajo */
+  }
+
+  selectAllInSurface(surface);
+  try {
+    document.execCommand('paste');
+  } catch (_) {
+    /* ignore */
+  }
+
+  await new Promise((r) => requestAnimationFrame(r));
+  await new Promise((r) => setTimeout(r, 60));
+
+  if (normCompare(surface.innerText) === expected) {
+    return true;
+  }
+
+  surface.innerText = text;
+  try {
+    surface.dispatchEvent(new Event('input', { bubbles: true }));
+  } catch (_) {
+    /* ignore */
+  }
+
+  await new Promise((r) => requestAnimationFrame(r));
+
+  return normCompare(surface.innerText) === expected;
+}
+
+/** Usar al pulsar "Reemplazar": devuelve si el cuadro quedó con el texto esperado. */
+async function applyReplacementText(text, el) {
   const target = el != null ? el : activeField;
   if (!target || !target.isConnected) return false;
+
   if (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT') {
+    target.focus();
     target.value = text;
     target.dispatchEvent(new Event('input', { bubbles: true }));
     try {
       target.dispatchEvent(new Event('change', { bubbles: true }));
-    } catch (_) { /* ignore */ }
-  } else {
-    target.innerText = text;
-    target.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (_) {
+      /* ignore */
+    }
+    return true;
   }
-  return true;
+
+  const surface = getEditableSurface(target);
+  if (!surface || !surface.isConnected) return false;
+
+  if (location.hostname === 'web.whatsapp.com') {
+    return replaceWhatsAppComposer(surface, text);
+  }
+
+  return replaceContentEditableGeneric(surface, text);
 }
 
 function createTriggerBtn(field) {
@@ -131,7 +257,7 @@ function openPanel() {
     });
   });
 
-  $p('#copilotReplace').addEventListener('click', (e) => {
+  $p('#copilotReplace').addEventListener('click', async (e) => {
     e.stopPropagation();
     const resultEl = $p('#copilotResultText');
     const result = resultEl ? resultEl.textContent : '';
@@ -146,8 +272,9 @@ function openPanel() {
       closePanel();
       return;
     }
-    if (!setText(result, field)) {
-      showToast('No se pudo actualizar el campo');
+    const ok = await applyReplacementText(result, field);
+    if (!ok) {
+      showToast('WhatsApp bloqueó el reemplazo. Copia el resultado y pégalo (Ctrl+V).');
       closePanel();
       return;
     }
