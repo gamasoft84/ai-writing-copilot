@@ -16,7 +16,8 @@
     "https://*.x.com/*",
     "https://*.facebook.com/*",
     "https://web.whatsapp.com/*",
-    "https://mail.google.com/*"
+    "https://mail.google.com/*",
+    "https://github.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -29,7 +30,8 @@
         "https://*.x.com/*",
         "https://*.facebook.com/*",
         "https://web.whatsapp.com/*",
-        "https://mail.google.com/*"
+        "https://mail.google.com/*",
+        "https://github.com/*"
       ],
       "js": ["content.js"],
       "css": ["panel.css"]
